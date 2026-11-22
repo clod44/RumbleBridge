@@ -2,6 +2,19 @@ Stop-Process -Name "RumbleBridge" -Force -ErrorAction SilentlyContinue
 $dir = "$env:USERPROFILE\RumbleBridge"
 New-Item -ItemType Directory -Path "$dir\logs" -Force | Out-Null
 
+if (-not (Test-Path "$dir\Nefarius.ViGEm.Client.dll")) {
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    $pkgZip = "$env:TEMP\vigem.zip"
+    $pkgDir = "$env:TEMP\vigem_extracted"
+    Remove-Item $pkgZip, $pkgDir -Recurse -Force -ErrorAction SilentlyContinue
+    Invoke-WebRequest -Uri "https://www.nuget.org/api/v2/package/Nefarius.ViGEm.Client/1.21.256" -OutFile $pkgZip -UseBasicParsing
+    Expand-Archive -Path $pkgZip -DestinationPath $pkgDir -Force
+    $foundDll = Get-ChildItem -Path "$pkgDir\lib\net452" -Filter "Nefarius.ViGEm.Client.dll" -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $foundDll) { $foundDll = Get-ChildItem -Path "$pkgDir\lib" -Filter "Nefarius.ViGEm.Client.dll" -Recurse | Select-Object -First 1 }
+    Copy-Item -Path $foundDll.FullName -Destination "$dir\Nefarius.ViGEm.Client.dll" -Force
+    Remove-Item $pkgZip, $pkgDir -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 $cs = @'
 using System;
 using System.Collections.Generic;
